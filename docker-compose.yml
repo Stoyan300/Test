@@ -1,0 +1,45 @@
+version: '3.5'
+services:
+  gitlab:
+    image: gitlab/gitlab-ce:latest
+    restart: unless-stopped
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        gitlab_rails['gitlab_shell_ssh_port'] = 8822 
+        external_url 'https://stoyanspasov.com:50443'
+        nginx['listen_port'] = 80
+        nginx['redirect_http_to_https'] = true
+        nginx['ssl_certificate'] = "/etc/ssl/certs/gitlab/server-cert.pem"
+        nginx['ssl_certificate_key'] = "/etc/ssl/certs/gitlab/server-key.pem"
+        nginx['ssl_protocols'] = "TLSv1.1 TLSv1.2"
+        nginx['logrotate_frequency'] = "weekly"
+        nginx['logrotate_rotate'] = 52
+        nginx['logrotate_compress'] = "compress"
+        nginx['logrotate_method'] = "copytruncate"
+        nginx['logrotate_delaycompress'] = "delaycompress" 
+        nginx['redirect_http_to_https'] = true
+        ci_nginx['redirect_http_to_https'] = true
+    ports:
+      - "8000:80"
+      - "8822:22"
+      - "50443:433"
+    volumes:
+      - ./config/gitlab:/etc/gitlab
+      - ./data/gitlab:/var/opt/gitlab
+      - ./logs:/var/log/gitlab
+    networks:
+      - gitlab
+
+  gitlab-runner:
+    image: gitlab/gitlab-runner:alpine
+    restart: unless-stopped
+    depends_on:
+      - gitlab
+    volumes:
+      - ./config/gitlab-runner:/etc/gitlab-runner
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - gitlab
+
+networks:
+  gitlab:
